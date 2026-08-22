@@ -347,6 +347,9 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
+  // بعض الشبكات/المتصفحات (خصوصًا Safari) بتتعارض مع نوع الاتصال الافتراضي بتاع Firestore
+  // (WebChannel streaming) فيظهر الخطأ الوهمي "client is offline". إجبار long-polling بيحل ده.
+  db.settings({ experimentalAutoDetectLongPolling: true, useFetchStreams: false });
  
   let productsCache = {}; // sku -> Firestore product doc data
   let editingSku = null;  // sku currently being edited, or null when adding a new one
