@@ -1,6 +1,7 @@
 
 
-Admin · HTML
+ 
+ 
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -452,10 +453,17 @@ Admin · HTML
   }
  
   function quickStock(sku){
-    const val = parseInt(document.getElementById('qstock-'+sku).value, 10);
+    const input = document.getElementById('qstock-'+sku);
+    const val = parseInt(input.value, 10);
     if(isNaN(val) || val < 0) return;
+    const oldVal = productsCache[sku] ? productsCache[sku].stock : undefined;
     db.collection('products').doc(sku).set({ stock: val }, { merge:true }).then(() => {
       if(productsCache[sku]) productsCache[sku].stock = val;
+    }).catch(err => {
+      console.error('quickStock failed for', sku, err);
+      // الحفظ فشل فعليًا — رجّع الرقم القديم في الحقل عشان الشاشة متكدبش عليك، وبلّغ فورًا
+      if(oldVal !== undefined) input.value = oldVal;
+      alert('المخزون ما اتحفظش (' + (err.code || err.message || 'خطأ غير معروف') + '). جرب تاني، ولو الخطأ فضل يتكرر ابعتلي الكود ده.');
     });
   }
  
@@ -562,6 +570,12 @@ Admin · HTML
       errEl.classList.add('show');
       return;
     }
+    if(!auth.currentUser){
+      errEl.textContent = 'خرجت من تسجيل الدخول من غير ما تحس (السيشن انتهت). سجّل دخول تاني وحاول تحفظ من جديد.';
+      errEl.classList.add('show');
+      alert('السيشن بتاعتك انتهت — سجّل دخول تاني والمنتج مش هيتحفظش غير كده.');
+      return;
+    }
  
     const specsAr = [], specsEn = [];
     document.querySelectorAll('#specsRows .spec-row').forEach(row => {
@@ -583,13 +597,23 @@ Admin · HTML
     const saveBtn = document.querySelector('#productFormWrap .form-actions .btn');
     saveBtn.disabled = true;
     db.collection('products').doc(sku).set(docData, { merge:true }).then(() => {
+      // نتأكد فعليًا إن البيانات وصلت السيرفر (مش بس اتقرت محليًا) قبل ما نقفل الفورم
+      return db.collection('products').doc(sku).get({ source: 'server' });
+    }).then(snap => {
+      if(!snap.exists || snap.data().name_ar !== nameAr){
+        throw new Error('WRITE_NOT_CONFIRMED');
+      }
       closeProductForm();
       loadProducts();
     }).catch(err => {
-      console.warn(err);
+      console.error('saveProduct failed for', sku, err);
       saveBtn.disabled = false;
-      errEl.textContent = 'حصل خطأ أثناء الحفظ، حاول تاني.';
+      const isAuthErr = err.code === 'permission-denied';
+      errEl.textContent = isAuthErr
+        ? 'اترفض الحفظ من قواعد الأمان (السيشن ممكن تكون انتهت). سجّل دخول تاني وجرب.'
+        : 'حصل خطأ أثناء الحفظ، حاول تاني. (' + (err.code || err.message || '') + ')';
       errEl.classList.add('show');
+      alert('المنتج ما اتحفظش فعليًا: ' + (err.code || err.message || 'خطأ غير معروف') + '. متقفلش الصفحة وجرب تحفظ تاني.');
     });
   }
  
@@ -756,6 +780,9 @@ Admin · HTML
 </body>
 </html>
  
-
+ 
+ 
+ 
+ 
 
 
