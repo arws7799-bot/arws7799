@@ -1,6 +1,6 @@
 
 
-Index · HTML
+
  
  
 <!DOCTYPE html>
@@ -1045,6 +1045,9 @@ Index · HTML
   try{
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    // بعض الشبكات/المتصفحات (خصوصًا Safari) بتتعارض مع نوع الاتصال الافتراضي بتاع Firestore
+    // (WebChannel streaming) فيظهر الخطأ الوهمي "client is offline". إجبار long-polling بيحل ده.
+    db.settings({ experimentalAutoDetectLongPolling: true, useFetchStreams: false });
   }catch(e){ console.warn('Firebase init failed, falling back to local defaults:', e); }
  
   const stockCache = {};   // sku -> number (shared across everyone via Firestore)
@@ -1978,10 +1981,13 @@ Index · HTML
  
  
  
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 
